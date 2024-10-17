@@ -12,8 +12,8 @@
 </head>
 
 <?php
-require_once 'Controller/HorarioController.php';
-require_once 'Model/Campos.php';
+require_once '../Controller/HorarioController.php';
+require_once '../Model/Campos.php';
 
 $horarioController = new HorarioController();
 ?>
@@ -35,7 +35,7 @@ $horarioController = new HorarioController();
             <div class="container col-md-4">
                 <h5>Operaciones Horario:</h5>
 
-                <form action="Controller/HorarioController.php" method="POST" enctype="multipart/form-data">
+                <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="POST" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-6">
                             <label>Curso:</label>
@@ -130,40 +130,6 @@ $horarioController = new HorarioController();
                         </div>
                         <div class="col-6">
                             <button type="submit" class="btn btn-warning" name="action" value="cargarHorario">Cargar Horario</button>
-                        </div>
-                    </div>
-
-                    <!-- Agregamos la sección de búsqueda de horarios -->
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <h5>Búsqueda de Horarios:</h5>
-                            <label>Curso:</label>
-                            <select class="form-select" id="cursoBuscar" name="cursoBuscar">
-                                <?php
-                                foreach (Curso::cases() as $curso) {
-                                    echo "<option value='{$curso->value}'>{$curso->value}</option>";
-                                }
-                                ?>
-                            </select>
-
-                            <label>Día:</label>
-                            <select class="form-select" id="diaBuscar" name="diaBuscar">
-                                <?php
-                                foreach (Semana::cases() as $dia) {
-                                    echo "<option value='{$dia->value}'>{$dia->name}</option>";
-                                }
-                                ?>
-                            </select>
-
-                            <button type="submit" class="btn btn-success" name="action" value="buscarHorario">Buscar Horario</button>
-                        </div>
-                    </div>
-
-                    <!-- Agregamos la sección de estadísticas de horarios -->
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <h5>Estadísticas de Horarios:</h5>
-                            <button type="submit" class="btn btn-secondary" name="action" value="estadisticasHorarios">Ver Estadísticas</button>
                         </div>
                     </div>
                 </form>
