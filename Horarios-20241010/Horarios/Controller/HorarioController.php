@@ -24,7 +24,8 @@ class HorarioController{
         }
     }
 
-    function mostrarHorario(){
-
+    public function obtenerHorario() {
+        $gestor = new GestorHorario();
+        return $gestor->mostrarHorario();
     }
 }

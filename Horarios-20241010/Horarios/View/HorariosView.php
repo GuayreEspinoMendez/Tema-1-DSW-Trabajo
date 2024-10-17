@@ -13,6 +13,9 @@
 
 <?php
 require_once 'Controller/HorarioController.php';
+require_once 'Model/Campos.php';
+
+$horarioController = new HorarioController();
 ?>
 
 <body>
@@ -23,6 +26,7 @@ require_once 'Controller/HorarioController.php';
             <div class="container col-md-8">
                 <?php
                 // Mostrar cuadro horario
+                echo $horarioController->obtenerHorario();
                 ?>
             </div>
             <br>
@@ -31,14 +35,16 @@ require_once 'Controller/HorarioController.php';
             <div class="container col-md-4">
                 <h5>Operaciones Horario:</h5>
 
-                <form action="#" method="POST" enctype="multipart/form-data">
+                <form action="Controller/HorarioController.php" method="POST" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-6">
                             <label>Curso:</label>
                             <select class="form-select" id="curso" name="curso">
                                 <option value=''></option>
                                 <?php
-                                //Cursos
+                                foreach (Curso::cases() as $curso) {
+                                    echo "<option value='{$curso->value}'>{$curso->value}</option>";
+                                }
                                 ?>
                             </select>
                         </div>
@@ -47,8 +53,9 @@ require_once 'Controller/HorarioController.php';
                             <select class="form-select" id="dia" name="dia">
                                 <option value=''></option>
                                 <?php
-                                // Semana
-                                
+                                foreach (Semana::cases() as $dia) {
+                                    echo "<option value='{$dia->value}'>{$dia->name}</option>";
+                                }
                                 ?>
                             </select>
                         </div>
@@ -60,7 +67,9 @@ require_once 'Controller/HorarioController.php';
                             <select class="form-select" id="tipoFranja" name="tipoFranja">
                                 <option value=''></option>
                                 <?php
-                                // Tipo Franja Horaria
+                                foreach (TipoFranja::cases() as $tipo) {
+                                    echo "<option value='{$tipo->value}'>{$tipo->name}</option>";
+                                }
                                 ?>
                             </select>
                         </div>
@@ -69,10 +78,10 @@ require_once 'Controller/HorarioController.php';
                             <select class="form-select" id="hora" name="hora">
                                 <option value=''></option>
                                 <?php
-                                // Horas
-                                
+                                foreach (Hora::cases() as $hora) {
+                                    echo "<option value='{$hora->codigoHora()}'>{$hora->value}</option>";
+                                }
                                 ?>
-
                             </select>
                         </div>
                     </div>
@@ -83,76 +92,89 @@ require_once 'Controller/HorarioController.php';
                             <select class="form-select" id="materia" name="materia">
                                 <option value=''></option>
                                 <?php
-                                // Materias
-                                ?>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label>Clase:</label>
-                            <select class="form-select" id="clase" name="clase">
-                                <option value=''></option>
-                                <?php
-                                // Clases
+                                foreach (Materia::cases() as $materia) {
+                                    echo "<option value='{$materia->value}'>{$materia->name}</option>";
+                                }
                                 ?>
                             </select>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-6">
-                            <label>Color:</label>
-                            <select class="form-select" id="color" name="color">
-                                <option value=''></option>
-                                <?php
-                                // Colores
-                                ?>
-                            </select>
-                        </div>
-                    </div>
-                    <br>
-                    <div class="row">
-                        <div class="col-4">
-                            <input type="submit" class="btn btn-primary" name="insertar" value="Insertar Hora">
-                        </div>
 
-                        <div class="col-4">
-                            <input type="submit" class="btn btn-danger" name="eliminar" value="Eliminar Hora">
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary" name="action" value="insertarHora">Insertar Hora</button>
+                            <button type="submit" class="btn btn-danger" name="action" value="eliminarHora">Eliminar Hora</button>
                         </div>
                     </div>
-                    <br>
-                    <h5>Generar Horario:</h5>
-                    <div class="row">
+
+                    <div class="row mt-3">
                         <div class="col-6">
                             <label>Tipo Horario:</label>
-                            <select class="form-select" id="tipohorario" name="tipohorario">
+                            <select class="form-select" id="tipoHorario" name="tipoHorario">
                                 <option value=''></option>
                                 <?php
-                                // Tipos de horarios
-                                
+                                foreach (TiposHorarios::cases() as $tipoHorario) {
+                                    echo "<option value='{$tipoHorario->value}'>{$tipoHorario->name}</option>";
+                                }
                                 ?>
-
                             </select>
-                            <br>
-                            <input type="submit" class="btn btn-info" name="generar" value="Generar Horario">
                         </div>
-                    </div>
-                    <br>
-                    <h5>Importar Horario:</h5>
-                    <div class="row">
-                        <div class="col-4">
-                            <input type="file" name="fhorario" id="fhorario">
-                        </div>
-                    </div>
-                    <br>
-                    <div class="row">
-                        <div class="col-4">
-                            <input type="submit" class="btn btn-warning" name="cargar" value="Cargar Horario">
+                        <div class="col-6 d-flex align-items-end">
+                            <button type="submit" class="btn btn-info" name="action" value="generarHorario">Generar Horario</button>
                         </div>
                     </div>
 
+                    <div class="row mt-3">
+                        <div class="col-6">
+                            <input type="file" name="horarioFile" id="horarioFile">
+                        </div>
+                        <div class="col-6">
+                            <button type="submit" class="btn btn-warning" name="action" value="cargarHorario">Cargar Horario</button>
+                        </div>
+                    </div>
+
+                    <!-- Agregamos la sección de búsqueda de horarios -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h5>Búsqueda de Horarios:</h5>
+                            <label>Curso:</label>
+                            <select class="form-select" id="cursoBuscar" name="cursoBuscar">
+                                <?php
+                                foreach (Curso::cases() as $curso) {
+                                    echo "<option value='{$curso->value}'>{$curso->value}</option>";
+                                }
+                                ?>
+                            </select>
+
+                            <label>Día:</label>
+                            <select class="form-select" id="diaBuscar" name="diaBuscar">
+                                <?php
+                                foreach (Semana::cases() as $dia) {
+                                    echo "<option value='{$dia->value}'>{$dia->name}</option>";
+                                }
+                                ?>
+                            </select>
+
+                            <button type="submit" class="btn btn-success" name="action" value="buscarHorario">Buscar Horario</button>
+                        </div>
+                    </div>
+
+                    <!-- Agregamos la sección de estadísticas de horarios -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h5>Estadísticas de Horarios:</h5>
+                            <button type="submit" class="btn btn-secondary" name="action" value="estadisticasHorarios">Ver Estadísticas</button>
+                        </div>
+                    </div>
                 </form>
-
             </div>
         </div>
+    </div>
+
+    <!-- JavaScript Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7tBDT86QzKL3PwOPB5QVchkHQDYWNEQtU"
+        crossorigin="anonymous"></script>
 </body>
 
 </html>

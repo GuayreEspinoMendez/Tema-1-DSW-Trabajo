@@ -260,22 +260,344 @@ class GestorHorario {
     
 
     public function mostrarHorario() {
-        // Implementar la lógica para generar la tabla HTML
-        // Leer el fichero horarios.dat y generar la tabla dinámicamente
+        require_once 'Model/Campos.php';
+        
+        $rutaFichero = 'horarios/horarios.dat';
+        $dias = Semana::cases();
+        $horas = Hora::cases();
+    
+        $horario = [];
+        if (file_exists($rutaFichero)) {
+            $lineas = file($rutaFichero, FILE_IGNORE_NEW_LINES);
+            foreach ($lineas as $linea) {
+                $partes = explode(';', $linea);
+                if (count($partes) >= 7) {
+                    $dia = $partes[1];
+                    $hora = $partes[2];
+                    $horario[$dia][$hora] = [
+                        'curso' => $partes[0],
+                        'materia' => $partes[3],
+                        'clase' => $partes[4],
+                        'color' => $partes[5],
+                        'tipo' => $partes[6]
+                    ];
+                }
+            }
+        }
+    
+        $tabla = '<table border="1"><tr><th>Hora</th>';
+        foreach ($dias as $dia) {
+            $tabla .= "<th>{$dia->value}</th>";
+        }
+        $tabla .= '</tr>';
+    
+        foreach ($horas as $hora) {
+            $tabla .= "<tr><td>{$hora->value}</td>";
+            foreach ($dias as $dia) {
+                $celda = $horario[$dia->value][$hora->codigoHora()] ?? null;
+                if ($celda) {
+                    $contenido = '';
+                    $estilo = "style='background-color:{$celda['color']}'";
+                    if ($celda['tipo'] == 'L') {
+                        $contenido = "{$celda['curso']}<br>{$celda['materia']}<br>{$celda['clase']}";
+                    } elseif ($celda['tipo'] == 'C' || $celda['tipo'] == 'RE') {
+                        $contenido = $celda['materia'];
+                    }
+                    $tabla .= "<td $estilo>$contenido</td>";
+                } else {
+                    $tabla .= '<td></td>';
+                }
+            }
+            $tabla .= '</tr>';
+        }
+    
+        $tabla .= '</table>';
+        return $tabla;
     }
 
     public function subirFichero($rutaFicheroSubido) {
-        // Implementar la lógica para sobrescribir horarios.dat con el nuevo fichero
+        $rutaFicheroDestino = 'horarios/horarios.dat';
+    
+        // Verificar si el fichero subido existe
+        if (!file_exists($rutaFicheroSubido)) {
+            throw new Exception("Error: El fichero subido no existe.");
+        }
+    
+        // Verificar si el fichero subido es legible
+        if (!is_readable($rutaFicheroSubido)) {
+            throw new Exception("Error: No se puede leer el fichero subido.");
+        }
+    
+        // Verificar si el directorio de destino existe, si no, crearlo
+        $directorioDestino = dirname($rutaFicheroDestino);
+        if (!is_dir($directorioDestino)) {
+            if (!mkdir($directorioDestino, 0777, true)) {
+                throw new Exception("Error: No se pudo crear el directorio de destino.");
+            }
+        }
+    
+        // Intentar copiar el fichero
+        if (!copy($rutaFicheroSubido, $rutaFicheroDestino)) {
+            throw new Exception("Error: No se pudo copiar el fichero.");
+        }
+    
+        // Verificar si la copia fue exitosa
+        if (!file_exists($rutaFicheroDestino)) {
+            throw new Exception("Error: La copia del fichero no se completó correctamente.");
+        }
+    
+        // Si todo ha ido bien, devolver un mensaje de éxito
+        return "El fichero se ha subido y sobrescrito correctamente.";
     }
 
     public function generarHorario($tipoHorario) {
-        // Implementar la lógica para generar horarios de mañana, tarde o mixto
-        // Aplicar todas las condiciones mencionadas en los requerimientos
+        require_once 'Model/Campos.php';
+    
+        $horario = [];
+        $horasLectivas = 0;
+        $horasComplementarias = 0;
+        $diasSemana = Semana::cases();
+        $materias = Materia::cases();
+        $clases = Clase::cases();
+        $cursos = Curso::cases();
+    
+        $horasManana = array_slice(Hora::cases(), 0, 7);
+        $horasTarde = array_slice(Hora::cases(), 7);
+    
+        $horasDisponibles = [];
+        switch ($tipoHorario) {
+            case TiposHorarios::Mañana:
+                $horasDisponibles = $horasManana;
+                break;
+            case TiposHorarios::Tarde:
+                $horasDisponibles = $horasTarde;
+                break;
+            case TiposHorarios::Mixto:
+                $horasDisponibles = Hora::cases();
+                break;
+            default:
+                throw new Exception("Tipo de horario no válido");
+        }
+    
+        // Generar horario
+        foreach ($diasSemana as $dia) {
+            $horasLectivasDia = 0;
+            $horasComplementariasDia = 0;
+            $materiasPorDia = [];
+    
+            foreach ($horasDisponibles as $hora) {
+                if ($this->esHoraRecreoBloqueada($hora)) {
+                    $horario[] = $this->generarFranjaRecreoBloqueada($dia, $hora);
+                    continue;
+                }
+    
+                if ($horasLectivas < 18 && $horasLectivasDia < 5 && mt_rand(0, 1) == 1) {
+                    // Generar hora lectiva
+                    $materia = $this->seleccionarMateriaLectiva($materiasPorDia);
+                    $clase = $clases[array_rand($clases)];
+                    $curso = $cursos[array_rand($cursos)];
+    
+                    $horario[] = [
+                        'curso' => $curso->value,
+                        'dia' => $dia->value,
+                        'hora' => $hora->codigoHora(),
+                        'materia' => $materia->value,
+                        'clase' => $clase->value,
+                        'color' => $this->asignarColorMateria($materia),
+                        'tipo' => TipoFranja::Lectiva->value
+                    ];
+                    $horasLectivas++;
+                    $horasLectivasDia++;
+                    $materiasPorDia[$materia->value] = ($materiasPorDia[$materia->value] ?? 0) + 1;
+                } elseif ($horasComplementarias < 6 && $horasComplementariasDia < 3) {
+                    // Generar hora complementaria
+                    $horario[] = $this->generarFranjaComplementaria($dia, $hora);
+                    $horasComplementarias++;
+                    $horasComplementariasDia++;
+                }
+            }
+        }
+    
+        // Asegurar que se cumplen las horas requeridas y añadir horas específicas
+        $this->ajustarHorasRequeridas($horario, $horasLectivas, $horasComplementarias, $horasDisponibles);
+        $this->anadirHorasEspecificas($horario);
+    
+        // Guardar el horario generado
+        $this->guardarHorario($horario);
+    
+        return "Horario generado correctamente.";
+    }
+    private function esHoraRecreoBloqueada(Hora $hora): bool {
+        return $hora === Hora::Cuarta || $hora === Hora::Onceava;
+    }
+    
+    private function generarFranjaRecreoBloqueada(Semana $dia, Hora $hora): array {
+        return [
+            'curso' => '',
+            'dia' => $dia->value,
+            'hora' => $hora->codigoHora(),
+            'materia' => 'Recreo',
+            'clase' => '',
+            'color' => 'gray',
+            'tipo' => TipoFranja::Recreo->value
+        ];
+    }
+    
+    private function seleccionarMateriaLectiva(array $materiasPorDia): Materia {
+        $materiasDisponibles = array_diff_key(Materia::cases(), $materiasPorDia);
+        return $materiasDisponibles[array_rand($materiasDisponibles)];
+    }
+    
+    private function asignarColorMateria(Materia $materia): string {
+        $colores = ['red', 'blue', 'green', 'yellow', 'orange', 'purple'];
+        return $colores[$materia->value % count($colores)];
+    }
+    
+    private function generarFranjaComplementaria(Semana $dia, Hora $hora): array {
+        return [
+            'curso' => '',
+            'dia' => $dia->value,
+            'hora' => $hora->codigoHora(),
+            'materia' => 'Complementaria',
+            'clase' => '',
+            'color' => 'lightgray',
+            'tipo' => TipoFranja::Complementaria->value
+        ];
+    }
+    
+    private function ajustarHorasRequeridas(array &$horario, int $horasLectivas, int $horasComplementarias, array $horasDisponibles): void {
+        while ($horasLectivas < 18) {
+            $dia = Semana::cases()[array_rand(Semana::cases())];
+            $hora = $horasDisponibles[array_rand($horasDisponibles)];
+            $materia = $this->seleccionarMateriaLectiva([]);
+            $clase = Clase::cases()[array_rand(Clase::cases())];
+            $curso = Curso::cases()[array_rand(Curso::cases())];
+    
+            $horario[] = [
+                'curso' => $curso->value,
+                'dia' => $dia->value,
+                'hora' => $hora->codigoHora(),
+                'materia' => $materia->value,
+                'clase' => $clase->value,
+                'color' => $this->asignarColorMateria($materia),
+                'tipo' => TipoFranja::Lectiva->value
+            ];
+            $horasLectivas++;
+        }
+    
+        while ($horasComplementarias < 6) {
+            $dia = Semana::cases()[array_rand(Semana::cases())];
+            $hora = $horasDisponibles[array_rand($horasDisponibles)];
+    
+            $horario[] = $this->generarFranjaComplementaria($dia, $hora);
+            $horasComplementarias++;
+        }
+    }
+    private function anadirHorasEspecificas(array &$horario): void {
+        // Añadir Reunión de Departamento (RD)
+        $diaRD = Semana::Martes;
+        $horaRD = Hora::Octava; // Primera hora de la tarde
+        $horario[] = [
+            'curso' => '',
+            'dia' => $diaRD->value,
+            'hora' => $horaRD->codigoHora(),
+            'materia' => Materia::REUNIÓN_DEPARTAMENTO->value,
+            'clase' => '',
+            'color' => Color::AzulClaro->value,
+            'tipo' => TipoFranja::Complementaria->value
+        ];
+    
+        // Añadir Tutoría (TUO)
+        $diaTutoria = Semana::cases()[array_rand(Semana::cases())];
+        $horaTutoria = Hora::cases()[array_rand(Hora::cases())];
+        $horario[] = [
+            'curso' => '',
+            'dia' => $diaTutoria->value,
+            'hora' => $horaTutoria->codigoHora(),
+            'materia' => Materia::TUTORÍA->value,
+            'clase' => '',
+            'color' => Color::Verde->value,
+            'tipo' => TipoFranja::Complementaria->value
+        ];
+    
+        // Añadir Guardias (G)
+        $guardiasAsignadas = 0;
+        while ($guardiasAsignadas < 3) {
+            $diaGuardia = Semana::cases()[array_rand(Semana::cases())];
+            $horaGuardia = Hora::cases()[array_rand(Hora::cases())];
+            
+            // Verificar que no haya una guardia en la hora anterior o siguiente
+            if (!$this->hayGuardiaAdyacente($horario, $diaGuardia, $horaGuardia)) {
+                $horario[] = [
+                    'curso' => '',
+                    'dia' => $diaGuardia->value,
+                    'hora' => $horaGuardia->codigoHora(),
+                    'materia' => Materia::GUARDIA->value,
+                    'clase' => '',
+                    'color' => Color::Amarillo->value,
+                    'tipo' => TipoFranja::Complementaria->value
+                ];
+                $guardiasAsignadas++;
+            }
+        }
+    }
+    
+    private function guardarHorario(array $horario): void {
+        $rutaFichero = 'horarios/horarios.dat';
+        $directorio = dirname($rutaFichero);
+    
+        // Crear el directorio si no existe
+        if (!is_dir($directorio)) {
+            mkdir($directorio, 0777, true);
+        }
+    
+        // Abrir el fichero en modo escritura
+        $fp = fopen($rutaFichero, 'w');
+    
+        if ($fp) {
+            foreach ($horario as $franja) {
+                $linea = implode(';', [
+                    $franja['curso'],
+                    $franja['dia'],
+                    $franja['hora'],
+                    $franja['materia'],
+                    $franja['clase'],
+                    $franja['color'],
+                    $franja['tipo']
+                ]) . "@\n";
+                fwrite($fp, $linea);
+            }
+    
+            fclose($fp);
+        } else {
+            throw new Exception("No se pudo abrir el fichero para escribir el horario.");
+        }
+    }
+    
+    // Función auxiliar para verificar si hay una guardia en horas adyacentes
+    private function hayGuardiaAdyacente(array $horario, Semana $dia, Hora $hora): bool {
+        $horaAnterior = null ;
+        $horaSiguiente = null;
+    
+        if ($hora->value > 1) {
+            $horaAnterior = Hora::from($hora->value - 1);
+        }
+    
+        if ($hora->value < count(Hora::cases())) {
+            $horaSiguiente = Hora::from($hora->value + 1);
+        }
+    
+        foreach ($horario as $franja) {
+            if ($franja['dia'] === $dia->value && $franja['hora'] === $horaAnterior?->codigoHora()) {
+                return true;
+            }
+    
+            if ($franja['dia'] === $dia->value && $franja['hora'] === $horaSiguiente?->codigoHora()) {
+                return true;
+            }
+        }
+    
+        return false;
     }
 
-    private function contarHorasPorDia($dia, $materia) {
-        // Implementar la lógica para contar las horas de una materia en un día
-    }
-
-    // Agregar más métodos privados para ayudar con las validaciones y la lógica
 }
