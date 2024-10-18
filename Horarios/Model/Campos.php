@@ -79,9 +79,9 @@ enum Color: string
     case Amarillo = '#f1ef16';
     case Blanco = "#ffffff";
     case AzulClaro = '#87CEEB';
-    case AzulOscuro = '#032B44';
+    case Morado = '#c88acf';
     case VerdeClaro = '#8BC34A';
-    case VerdeOscuro = '#2E865F';
+    case VerdeOscuro = '#069e2f';
     case NaranjaClaro = '#FFC107';
 }
 

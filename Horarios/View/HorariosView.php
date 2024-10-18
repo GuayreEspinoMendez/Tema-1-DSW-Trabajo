@@ -98,6 +98,17 @@ $horarioController = new HorarioController();
                                 ?>
                             </select>
                         </div>
+                        <div class="col-6">
+                            <label>Clase:</label>
+                            <select class="form-select" id="clase" name="clase">
+                                <option value=''></option>
+                                <?php
+                                foreach (Clase::cases() as $clase) {
+                                    echo "<option value='{$clase->value}'>{$clase->name}</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="row mt-3">
